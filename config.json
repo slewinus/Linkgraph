@@ -1,0 +1,7 @@
+{
+  "color_title": "#008DA2",
+  "color_text": "#031930",
+  "data_colors": ["#76C5BC", "#48B77D", "#4BBABB", "#008DA2", "#A9D249", "#2B2171", "#EAD83F", "#EA504C"],
+  "output_folder": "rapports",
+  "logo_path": "images/logo.png"
+}
