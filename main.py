@@ -1,136 +1,19 @@
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, simpledialog, IntVar, Scrollbar
-import json
 import logging
 import os
 import sys
-from datetime import datetime
-import pandas as pd
-import matplotlib.pyplot as plt
-from PIL import Image, ImageTk, Image
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox, simpledialog, IntVar
+
+from PIL import ImageTk, Image
 from PIL.Image import Resampling
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.pdfgen import canvas as pdf_canvas
-import folium
+
+from config import apply_style, load_config
+from interactive_map import generate_interactive_map
+from reports import load_data, generate_charts, create_pdf_report
 
 APP_VERSION = "BETA V0.1.9"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def apply_style(root):
-    style = ttk.Style(root)
-    style.theme_use('clam')
-    theme_color = "#f0f0f0"
-    accent_color = "#1d79ac"
-    text_color = "#000000"
-    style.configure("TFrame", background=theme_color)
-    style.configure("TButton", font=("Arial", 12), background=theme_color, foreground=text_color)
-    style.map("TButton", background=[('active', accent_color), ('!disabled', theme_color)])
-    style.configure("TLabel", font=("Arial", 12), background=theme_color, foreground=text_color)
-    style.configure("TEntry", font=("Arial", 12), relief="flat", background=theme_color)
-    style.configure("TCheckbutton", font=("Arial", 12), background=theme_color, foreground=text_color)
-
-def load_config():
-    try:
-        config_path = os.path.join(sys._MEIPASS, "config.json") if getattr(sys, 'frozen', False) else "config.json"
-        with open(config_path, 'r') as config_file:
-            config = json.load(config_file)
-        logging.info("Configuration loaded successfully.")
-        return config
-    except Exception as e:
-        logging.error(f"Error loading config file: {e}")
-        messagebox.showerror("Error", f"Failed to load config file: {str(e)}")
-        return None
-
-def load_data(file_path):
-    try:
-        df = pd.read_excel(file_path)
-        logging.info(f"Excel file {file_path} loaded successfully.")
-        return df, df.columns.tolist()
-    except Exception as e:
-        logging.error(f"Error loading Excel file: {e}")
-        messagebox.showerror("Error", f"Failed to load file: {str(e)}")
-        return None, []
-
-def is_numeric_column(series):
-    return pd.api.types.is_numeric_dtype(series)
-
-def generate_charts(df, column_chart_pairs, config, output_folder):
-    figsize = (8, 6)
-    for column, chart_type in column_chart_pairs:
-        if column in df.columns:
-            value_counts = df[column].value_counts()
-            plt.figure(figsize=figsize)
-            if chart_type == 'Pie Chart':
-                if not value_counts.empty and value_counts.sum() > 0:
-                    plt.pie(value_counts, autopct='%1.1f%%', startangle=90, colors=config['data_colors'][:len(value_counts)])
-                    plt.legend(value_counts.index, title="Categories", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
-                    plt.axis('equal')
-            elif chart_type == 'Bar Chart':
-                value_counts.plot(kind='bar', color=config['data_colors'])
-                plt.ylabel('Count')
-                plt.xlabel(column)
-                plt.xticks(rotation=45)
-            elif chart_type == 'Line Chart':
-                if is_numeric_column(df[column]):
-                    df[column].plot(kind='line', color=config['data_colors'][0])
-                    plt.ylabel(column)
-                    plt.xlabel('Index')
-            elif chart_type == 'Scatter Plot':
-                other_columns = [col for col, _ in column_chart_pairs if col != column and is_numeric_column(df[col])]
-                if other_columns:
-                    plt.scatter(df[other_columns[0]], df[column], color=config['data_colors'][0])
-                    plt.xlabel(other_columns[0])
-                    plt.ylabel(column)
-            img_file_path = os.path.join(output_folder, f'{column.replace(" - ", "_").replace(" ", "_")}.png')
-            plt.savefig(img_file_path, bbox_inches='tight')
-            plt.close()
-            logging.info(f"{chart_type} generated for column {column}: {img_file_path}")
-            yield column, img_file_path
-        else:
-            logging.warning(f"Column {column} not found in the DataFrame.")
-
-def create_pdf_report(config, charts, output_folder):
-    pdf_file_path = os.path.join(output_folder, f'Rapport_Analyse_{datetime.now().strftime("%Y_%m_%d")}.pdf')
-    c = pdf_canvas.Canvas(pdf_file_path, pagesize=letter)
-    width, height = letter
-    for header, img_file_path in charts:
-        img_width, img_height = 8 * inch, 6 * inch
-        title_y_position = height - 1.5 * inch
-        image_x = (width - img_width) / 2
-        image_y = (height - img_height) / 2
-        c.setFont("Helvetica-Bold", 18)
-        c.setFillColor(config['color_title'])
-        c.drawCentredString(width / 2, title_y_position, header)
-        c.drawImage(img_file_path, image_x, image_y, width=img_width, height=img_height, preserveAspectRatio=True)
-        logo_path = os.path.join(sys._MEIPASS, "images", "logo.png") if getattr(sys, 'frozen', False) else "images/logo.png"
-        c.drawImage(logo_path, inch * 0.5, inch * 0.5, width=1 * inch, height=0.5 * inch, preserveAspectRatio=True)
-        c.setFont("Helvetica", 9)
-        c.setFillColor(config['color_text'])
-        c.drawString(2 * inch, inch * 0.25, f"Date de création : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        c.showPage()
-    c.save()
-    logging.info(f"PDF report generated: {pdf_file_path}")
-    messagebox.showinfo("Success", f"PDF file has been generated successfully: {pdf_file_path}")
-
-def generate_interactive_map(df, lat_col, lon_col, output_folder):
-    if lat_col not in df.columns or lon_col not in df.columns:
-        messagebox.showerror("Error", "Invalid latitude or longitude column selection.")
-        return
-    df = df[[lat_col, lon_col]].dropna()
-    if df.empty:
-        messagebox.showerror("Error", "No valid coordinates found after removing missing values.")
-        return
-    m = folium.Map(location=[df[lat_col].mean(), df[lon_col].mean()], zoom_start=6)
-    for _, row in df.iterrows():
-        folium.Marker(
-            location=[row[lat_col], row[lon_col]],
-            popup=f"{lat_col}: {row[lat_col]}, {lon_col}: {row[lon_col]}"
-        ).add_to(m)
-    map_file_path = os.path.join(output_folder, f'Interactive_Map_{datetime.now().strftime("%Y_%m_%d")}.html')
-    m.save(map_file_path)
-    logging.info(f"Interactive map generated: {map_file_path}")
-    messagebox.showinfo("Success", f"Interactive map has been generated successfully: {map_file_path}")
 
 class ChartSelectionDialog(tk.Toplevel):
     def __init__(self, parent, columns, callback):
