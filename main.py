@@ -1,21 +1,34 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, IntVar, Scrollbar, Canvas, simpledialog, ttk
-import pandas as pd
-import matplotlib.pyplot as plt
-import folium
-from PIL import Image, ImageTk
-from PIL.Image import Resampling
-from reportlab.lib.units import inch
-from reportlab.pdfgen import canvas as pdf_canvas
-from reportlab.lib.pagesizes import letter
-from datetime import datetime
+from tkinter import ttk, filedialog, messagebox, simpledialog, IntVar, Scrollbar
 import json
+import logging
 import os
 import sys
-import logging
+from datetime import datetime
+import pandas as pd
+import matplotlib.pyplot as plt
+from PIL import Image, ImageTk, Image
+from PIL.Image import Resampling
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas as pdf_canvas
+import folium
 
 APP_VERSION = "BETA V0.1.9"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def apply_style(root):
+    style = ttk.Style(root)
+    style.theme_use('clam')
+    theme_color = "#f0f0f0"
+    accent_color = "#1d79ac"
+    text_color = "#000000"
+    style.configure("TFrame", background=theme_color)
+    style.configure("TButton", font=("Arial", 12), background=theme_color, foreground=text_color)
+    style.map("TButton", background=[('active', accent_color), ('!disabled', theme_color)])
+    style.configure("TLabel", font=("Arial", 12), background=theme_color, foreground=text_color)
+    style.configure("TEntry", font=("Arial", 12), relief="flat", background=theme_color)
+    style.configure("TCheckbutton", font=("Arial", 12), background=theme_color, foreground=text_color)
 
 def load_config():
     try:
@@ -53,9 +66,6 @@ def generate_charts(df, column_chart_pairs, config, output_folder):
                     plt.pie(value_counts, autopct='%1.1f%%', startangle=90, colors=config['data_colors'][:len(value_counts)])
                     plt.legend(value_counts.index, title="Categories", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
                     plt.axis('equal')
-                else:
-                    logging.info(f"No data to plot for {column} (Pie Chart).")
-                    continue
             elif chart_type == 'Bar Chart':
                 value_counts.plot(kind='bar', color=config['data_colors'])
                 plt.ylabel('Count')
@@ -66,18 +76,12 @@ def generate_charts(df, column_chart_pairs, config, output_folder):
                     df[column].plot(kind='line', color=config['data_colors'][0])
                     plt.ylabel(column)
                     plt.xlabel('Index')
-                else:
-                    logging.warning(f"{column} contains non-numeric data. Skipping Line Chart.")
-                    continue
             elif chart_type == 'Scatter Plot':
                 other_columns = [col for col, _ in column_chart_pairs if col != column and is_numeric_column(df[col])]
                 if other_columns:
                     plt.scatter(df[other_columns[0]], df[column], color=config['data_colors'][0])
                     plt.xlabel(other_columns[0])
                     plt.ylabel(column)
-                else:
-                    logging.warning(f"Scatter Plot requires at least two numeric columns. Skipping Scatter Plot for {column}.")
-                    continue
             img_file_path = os.path.join(output_folder, f'{column.replace(" - ", "_").replace(" ", "_")}.png')
             plt.savefig(img_file_path, bbox_inches='tight')
             plt.close()
@@ -136,17 +140,17 @@ class ChartSelectionDialog(tk.Toplevel):
         self.chart_type_vars = {}
         self.callback = callback
         chart_types = ['Pie Chart', 'Bar Chart', 'Line Chart', 'Scatter Plot']
-        frame = tk.Frame(self)
+        frame = ttk.Frame(self)
         frame.pack(pady=10, padx=10, fill='both', expand=True)
         for column in columns:
             var = tk.StringVar(value='Pie Chart')
-            row_frame = tk.Frame(frame)
+            row_frame = ttk.Frame(frame)
             row_frame.pack(anchor='w', fill='x')
-            tk.Label(row_frame, text=column).pack(side='left', padx=10)
+            ttk.Label(row_frame, text=column).pack(side='left', padx=10)
             chart_type_menu = ttk.Combobox(row_frame, textvariable=var, values=chart_types, state='readonly')
             chart_type_menu.pack(side='left')
             self.chart_type_vars[column] = var
-        tk.Button(self, text="OK", command=self.on_ok).pack(pady=10)
+        ttk.Button(self, text="OK", command=self.on_ok).pack(pady=10)
 
     def on_ok(self):
         column_chart_pairs = [(column, var.get()) for column, var in self.chart_type_vars.items()]
@@ -166,33 +170,39 @@ class App:
         self.column_chart_pairs = []
         root.title('Report Generator')
         root.geometry("750x600")
-        top_frame = tk.Frame(root)
+        apply_style(root)  # Apply the custom style
+
+        top_frame = ttk.Frame(root)
         top_frame.pack(pady=10, padx=10, fill='x')
-        middle_frame = tk.Frame(root)
+        middle_frame = ttk.Frame(root)
         middle_frame.pack(pady=10, padx=10, fill='both', expand=True)
-        bottom_frame = tk.Frame(root)
+        bottom_frame = ttk.Frame(root)
         bottom_frame.pack(pady=10, padx=10, fill='x')
+
         logo_path = os.path.join(sys._MEIPASS, "images", "icon_app.png") if getattr(sys, 'frozen', False) else "images/icon_app.png"
         logo_image = Image.open(logo_path)
         logo_image = logo_image.resize((50, 50), Resampling.LANCZOS)
         logo_photo = ImageTk.PhotoImage(logo_image)
-        logo_label = tk.Label(top_frame, image=logo_photo)
+        logo_label = ttk.Label(top_frame, image=logo_photo)
         logo_label.image = logo_photo
         logo_label.pack(side='left')
-        tk.Button(top_frame, text="Open Excel File", command=self.open_file).pack(side='left', padx=10)
-        tk.Button(top_frame, text="Select Output Folder", command=self.select_output_folder).pack(side='left', padx=10)
+
+        ttk.Button(top_frame, text="Open Excel File", command=self.open_file).pack(side='left', padx=10)
+        ttk.Button(top_frame, text="Select Output Folder", command=self.select_output_folder).pack(side='left', padx=10)
+
         self.columns_canvas = tk.Canvas(middle_frame)
-        self.columns_frame = tk.Frame(self.columns_canvas)
-        self.vsb = Scrollbar(middle_frame, orient="vertical", command=self.columns_canvas.yview)
+        self.columns_frame = ttk.Frame(self.columns_canvas)
+        self.vsb = ttk.Scrollbar(middle_frame, orient="vertical", command=self.columns_canvas.yview)
         self.columns_canvas.configure(yscrollcommand=self.vsb.set)
         self.vsb.pack(side="right", fill="y")
         self.columns_canvas.pack(side="left", fill="both", expand=True)
         self.columns_canvas.create_window((4, 4), window=self.columns_frame, anchor="nw", tags="self.columns_frame")
         self.columns_frame.bind("<Configure>", self.on_frame_configure)
         self.columns_canvas.bind_all("<MouseWheel>", self.on_mouse_wheel)
-        tk.Button(bottom_frame, text="Generate Report", command=self.show_chart_selection_dialog).pack()
-        tk.Button(bottom_frame, text="Generate Interactive Map", command=self.generate_map).pack()
-        tk.Label(top_frame, text=f"Version: {APP_VERSION}").pack(side='left', padx=10)
+
+        ttk.Button(bottom_frame, text="Generate Report", command=self.show_chart_selection_dialog).pack()
+        ttk.Button(bottom_frame, text="Generate Interactive Map", command=self.generate_map).pack()
+        ttk.Label(top_frame, text=f"Version: {APP_VERSION}").pack(side='left', padx=10)
 
     def open_file(self):
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
@@ -204,7 +214,7 @@ class App:
                 self.column_vars = {}
                 for column in self.columns:
                     var = IntVar()
-                    chk = tk.Checkbutton(self.columns_frame, text=column, variable=var)
+                    chk = ttk.Checkbutton(self.columns_frame, text=column, variable=var)
                     chk.pack(anchor='w')
                     self.column_vars[column] = var
 
