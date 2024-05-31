@@ -13,7 +13,7 @@ def generate_interactive_map(df, lat_col, lon_col, additional_columns, output_fo
         messagebox.showerror("Error", "No valid coordinates found after removing missing values.")
         return
 
-    # Create a map and save it
+    # Create a map
     m = folium.Map(location=[df[lat_col].mean(), df[lon_col].mean()], zoom_start=6)
     marker_cluster = folium.FeatureGroup(name="Markers").add_to(m)
 
@@ -69,8 +69,6 @@ def generate_interactive_map(df, lat_col, lon_col, additional_columns, output_fo
 
     filter_script = """
     <script>
-    var map = L.map('map').setView([0, 0], 1); // Initialize the map correctly
-    var markers = []; // Initialize markers array
     function filterMarkers() {
         var ftthFilter = document.getElementById('ftthFilter').value;
         var fttoFilter = document.getElementById('fttoFilter').value;
@@ -100,8 +98,8 @@ def generate_interactive_map(df, lat_col, lon_col, additional_columns, output_fo
             }
         }
     }
-    </script>
-    <script>
+
+    var markers = [];
     """
 
     # Add marker initialization script
@@ -122,8 +120,8 @@ def generate_interactive_map(df, lat_col, lon_col, additional_columns, output_fo
 
     filter_script += "filterMarkers();</script>"
 
-    # Insert the filter controls, map container and script into the HTML
-    html_content = html_content.replace("<body>", f"<body>{filter_controls}<div id='map' style='width: 100%; height: 600px;'></div>")
+    # Insert the filter controls and script into the HTML
+    html_content = html_content.replace("<body>", f"<body>{filter_controls}")
     html_content = html_content.replace("</body>", f"{filter_script}</body>")
 
     with open(map_file_path, 'w') as f:

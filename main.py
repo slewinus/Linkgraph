@@ -5,18 +5,28 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox, simpledialog, IntVar
 from PIL import ImageTk, Image
 from PIL.Image import Resampling
+import pandas as pd
+import re
 
 from config import apply_style, load_config
 from interactive_map import generate_interactive_map
 from reports import load_data, generate_charts, create_pdf_report
 
 APP_VERSION = "BETA V0.1.9"
-logging.basicConfig(level=logging.INFO, format='%(pastime)s - %(levelness)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+def detect_gps_columns(df):
+    lat_col = None
+    lon_col = None
+    for col in df.columns:
+        if re.search(r'latitude|lat|gps y', col, re.IGNORECASE):
+            lat_col = col
+        if re.search(r'longitude|lon|gps x', col, re.IGNORECASE):
+            lon_col = col
+    return lat_col, lon_col
 
 class ChartSelectionDialog(ctk.CTkToplevel):
     def __init__(self, parent, columns, callback):
-
         super().__init__(parent)
         self.title("Select Chart Types")
         self.geometry("400x400")
@@ -40,7 +50,6 @@ class ChartSelectionDialog(ctk.CTkToplevel):
         self.callback(column_chart_pairs)
         self.destroy()
 
-
 class App:
     def __init__(self, root):
         self.root = root
@@ -51,7 +60,7 @@ class App:
         self.config = load_config()
         root.title('Report Generator')
         root.geometry("750x600")
-        apply_style(root)  # Apply the custom style if needed
+        apply_style(root)
 
         top_frame = ctk.CTkFrame(root)
         top_frame.pack(pady=10, padx=10, fill='x')
@@ -60,18 +69,16 @@ class App:
         bottom_frame = ctk.CTkFrame(root)
         bottom_frame.pack(pady=10, padx=10, fill='x')
 
-        logo_path = os.path.join(sys._MEIPASS, "images", "icon_app.png") if getattr(sys, 'frozen',
-                                                                                    False) else "images/icon_app.png"
+        logo_path = os.path.join(sys._MEIPASS, "images", "icon_app.png") if getattr(sys, 'frozen', False) else "images/icon_app.png"
         logo_image = Image.open(logo_path)
         logo_image = logo_image.resize((50, 50), Resampling.LANCZOS)
-        logo_photo = ctk.CTkImage(logo_image)
+        logo_photo = ImageTk.PhotoImage(logo_image)
         logo_label = ctk.CTkLabel(top_frame, image=logo_photo)
         logo_label.image = logo_photo
         logo_label.pack(side='left')
 
         ctk.CTkButton(top_frame, text="Open Excel File", command=self.open_file).pack(side='left', padx=10)
-        ctk.CTkButton(top_frame, text="Select Output Folder", command=self.select_output_folder).pack(side='left',
-                                                                                                      padx=10)
+        ctk.CTkButton(top_frame, text="Select Output Folder", command=self.select_output_folder).pack(side='left', padx=10)
 
         self.columns_canvas = ctk.CTkCanvas(middle_frame)
         self.columns_frame = ctk.CTkFrame(self.columns_canvas)
@@ -87,8 +94,7 @@ class App:
         ctk.CTkLabel(top_frame, text=f"Version: {APP_VERSION}").pack(side='left', padx=10)
 
     def open_file(self):
-        file_path = filedialog.askopenfilename(title="Select Excel File",
-                                               filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
+        file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
         if file_path:
             self.df, self.columns = load_data(file_path)
             if self.df is not None:
@@ -132,27 +138,15 @@ class App:
         create_pdf_report(self.config, charts, self.output_folder)
 
     def generate_map(self):
-        lat_col = self.get_selected_coordinate_column("Latitude Column (Y)")
-        lon_col = self.get_selected_coordinate_column("Longitude Column (X)")
+        lat_col, lon_col = detect_gps_columns(self.df)
         if lat_col and lon_col:
             additional_columns = [column for column, var in self.column_vars.items() if var.get() == 1 and column not in [lat_col, lon_col]]
             generate_interactive_map(self.df, lat_col, lon_col, additional_columns, self.output_folder)
-
-    def get_selected_coordinate_column(self, prompt):
-        columns = [column for column, var in self.column_vars.items() if var.get() == 1]
-        if not columns:
-            messagebox.showerror("Error", f"No columns selected for {prompt}.")
-            return None
-        selection = simpledialog.askstring("Select Column", f"Select {prompt}:", initialvalue=columns[0])
-        if selection and selection in columns:
-            return selection
         else:
-            messagebox.showerror("Error", f"Invalid selection for {prompt}.")
-            return None
+            messagebox.showerror("Error", "Latitude and/or Longitude columns not detected.")
 
     def on_frame_configure(self, event):
         self.columns_canvas.configure(scrollregion=self.columns_canvas.bbox("all"))
-
 
 if __name__ == "__main__":
     root = ctk.CTk()
