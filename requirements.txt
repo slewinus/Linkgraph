@@ -6,3 +6,4 @@ thinker
 Pillow
 folium
 tk
+customtkinter
