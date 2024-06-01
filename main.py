@@ -89,8 +89,13 @@ class App:
         self.columns_canvas.create_window((4, 4), window=self.columns_frame, anchor="nw", tags="self.columns_frame")
         self.columns_frame.bind("<Configure>", self.on_frame_configure)
 
-        ctk.CTkButton(bottom_frame, text="Generate Report", command=self.show_chart_selection_dialog).pack()
-        ctk.CTkButton(bottom_frame, text="Generate Interactive Map", command=self.generate_map).pack()
+        # Group buttons in a single frame for horizontal alignment
+        buttons_frame = ctk.CTkFrame(bottom_frame)
+        buttons_frame.pack(pady=10, padx=10)
+
+        ctk.CTkButton(buttons_frame, text="Generate Report", command=self.show_chart_selection_dialog).pack(side='left', padx=5)
+        ctk.CTkButton(buttons_frame, text="Generate Interactive Map", command=self.generate_map).pack(side='left', padx=5)
+
         ctk.CTkLabel(top_frame, text=f"Version: {APP_VERSION}").pack(side='left', padx=10)
 
     def open_file(self):
