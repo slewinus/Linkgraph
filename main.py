@@ -2,10 +2,8 @@ import logging
 import os
 import sys
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, simpledialog, IntVar
+from tkinter import filedialog, messagebox, IntVar
 from PIL import ImageTk, Image
-from PIL.Image import Resampling
-import pandas as pd
 import re
 
 from config import apply_style, load_config
@@ -16,8 +14,7 @@ APP_VERSION = "BETA V0.1.9"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def detect_gps_columns(df):
-    lat_col = None
-    lon_col = None
+    lat_col = lon_col = None
     for col in df.columns:
         if re.search(r'latitude|lat|gps y', col, re.IGNORECASE):
             lat_col = col
@@ -30,32 +27,28 @@ class ChartSelectionDialog(ctk.CTkToplevel):
         super().__init__(parent)
         self.title("Select Chart Types")
         self.geometry("400x400")
-        self.chart_type_vars = {}
+        self.chart_type_vars = {col: ctk.StringVar(value='Pie Chart') for col in columns}
         self.callback = callback
+
         chart_types = ['Pie Chart', 'Bar Chart', 'Line Chart', 'Scatter Plot']
         frame = ctk.CTkFrame(self)
         frame.pack(pady=10, padx=10, fill='both', expand=True)
         for column in columns:
-            var = ctk.StringVar(value='Pie Chart')
             row_frame = ctk.CTkFrame(frame)
             row_frame.pack(anchor='w', fill='x')
             ctk.CTkLabel(row_frame, text=column).pack(side='left', padx=10)
-            chart_type_menu = ctk.CTkOptionMenu(row_frame, variable=var, values=chart_types)
-            chart_type_menu.pack(side='left')
-            self.chart_type_vars[column] = var
+            ctk.CTkOptionMenu(row_frame, variable=self.chart_type_vars[column], values=chart_types).pack(side='left')
         ctk.CTkButton(self, text="OK", command=self.on_ok).pack(pady=10)
 
     def on_ok(self):
-        column_chart_pairs = [(column, var.get()) for column, var in self.chart_type_vars.items()]
+        column_chart_pairs = [(col, var.get()) for col, var in self.chart_type_vars.items()]
         self.callback(column_chart_pairs)
         self.destroy()
 
 class App:
     def __init__(self, root):
         self.root = root
-        self.df = None
-        self.columns = []
-        self.column_vars = {}
+        self.df = self.columns = self.column_vars = None
         self.output_folder = ""
         self.config = load_config()
         root.title('Report Generator')
@@ -70,15 +63,13 @@ class App:
         bottom_frame.pack(pady=10, padx=10, fill='x')
 
         logo_path = os.path.join(sys._MEIPASS, "images", "icon_app.png") if getattr(sys, 'frozen', False) else "images/icon_app.png"
-        logo_image = Image.open(logo_path)
-        logo_image = logo_image.resize((50, 50), Resampling.LANCZOS)
+        logo_image = Image.open(logo_path).resize((50, 50), Image.LANCZOS)
         logo_photo = ImageTk.PhotoImage(logo_image)
-        logo_label = ctk.CTkLabel(top_frame, image=logo_photo)
-        logo_label.image = logo_photo
-        logo_label.pack(side='left')
+        ctk.CTkLabel(top_frame, image=logo_photo).pack(side='left')
 
         ctk.CTkButton(top_frame, text="Open Excel File", command=self.open_file).pack(side='left', padx=10)
         ctk.CTkButton(top_frame, text="Select Output Folder", command=self.select_output_folder).pack(side='left', padx=10)
+        ctk.CTkLabel(top_frame, text=f"Version: {APP_VERSION}").pack(side='left', padx=10)
 
         self.columns_canvas = ctk.CTkCanvas(middle_frame)
         self.columns_frame = ctk.CTkFrame(self.columns_canvas)
@@ -86,17 +77,14 @@ class App:
         self.columns_canvas.configure(yscrollcommand=self.vsb.set)
         self.vsb.pack(side="right", fill="y")
         self.columns_canvas.pack(side="left", fill="both", expand=True)
-        self.columns_canvas.create_window((4, 4), window=self.columns_frame, anchor="nw", tags="self.columns_frame")
+        self.columns_canvas.create_window((4, 4), window=self.columns_frame, anchor="nw")
         self.columns_frame.bind("<Configure>", self.on_frame_configure)
 
-        # Group buttons in a single frame for horizontal alignment
         buttons_frame = ctk.CTkFrame(bottom_frame)
         buttons_frame.pack(pady=10, padx=10)
 
         ctk.CTkButton(buttons_frame, text="Generate Report", command=self.show_chart_selection_dialog).pack(side='left', padx=5)
         ctk.CTkButton(buttons_frame, text="Generate Interactive Map", command=self.generate_map).pack(side='left', padx=5)
-
-        ctk.CTkLabel(top_frame, text=f"Version: {APP_VERSION}").pack(side='left', padx=10)
 
     def open_file(self):
         file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
@@ -105,12 +93,9 @@ class App:
             if self.df is not None:
                 for widget in self.columns_frame.winfo_children():
                     widget.destroy()
-                self.column_vars = {}
-                for column in self.columns:
-                    var = IntVar()
-                    chk = ctk.CTkCheckBox(self.columns_frame, text=column, variable=var)
-                    chk.pack(anchor='w')
-                    self.column_vars[column] = var
+                self.column_vars = {col: IntVar() for col in self.columns}
+                for column, var in self.column_vars.items():
+                    ctk.CTkCheckBox(self.columns_frame, text=column, variable=var).pack(anchor='w')
 
     def select_output_folder(self):
         folder_selected = filedialog.askdirectory()
@@ -119,7 +104,7 @@ class App:
             logging.info(f"Output folder selected: {self.output_folder}")
 
     def show_chart_selection_dialog(self):
-        selected_columns = [column for column, var in self.column_vars.items() if var.get() == 1]
+        selected_columns = [col for col, var in self.column_vars.items() if var.get() == 1]
         if not selected_columns:
             messagebox.showerror("Error", "No columns selected.")
             return
@@ -145,7 +130,7 @@ class App:
     def generate_map(self):
         lat_col, lon_col = detect_gps_columns(self.df)
         if lat_col and lon_col:
-            additional_columns = [column for column, var in self.column_vars.items() if var.get() == 1 and column not in [lat_col, lon_col]]
+            additional_columns = [col for col, var in self.column_vars.items() if var.get() == 1 and col not in [lat_col, lon_col]]
             generate_interactive_map(self.df, lat_col, lon_col, additional_columns, self.output_folder)
         else:
             messagebox.showerror("Error", "Latitude and/or Longitude columns not detected.")

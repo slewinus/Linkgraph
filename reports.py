@@ -5,7 +5,6 @@ import sys
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
-
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas as pdf_canvas

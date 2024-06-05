@@ -1,8 +1,7 @@
 import logging
 import os
-import sys
-import customtkinter as ctk
-from tkinter import filedialog, messagebox, IntVar
+
+from tkinter import messagebox
 import re
 import folium
 import folium.plugins as plugins
