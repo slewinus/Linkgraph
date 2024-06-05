@@ -5,3 +5,5 @@ reportlab
 thinker
 Pillow
 folium
+tk
+customtkinter
