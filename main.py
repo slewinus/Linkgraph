@@ -2,17 +2,16 @@ import logging
 import os
 import sys
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, simpledialog, IntVar
+from tkinter import filedialog, messagebox, IntVar
 from PIL import ImageTk, Image
 from PIL.Image import Resampling
-import pandas as pd
 import re
 
 from config import apply_style, load_config
 from interactive_map import generate_interactive_map
 from reports import load_data, generate_charts, create_pdf_report
 
-APP_VERSION = "BETA V0.1.9"
+APP_VERSION = "BETA V0.2.0"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def detect_gps_columns(df):
@@ -31,22 +30,28 @@ class ChartSelectionDialog(ctk.CTkToplevel):
         self.title("Select Chart Types")
         self.geometry("400x400")
         self.chart_type_vars = {}
+        self.display_type_vars = {}
         self.callback = callback
         chart_types = ['Pie Chart', 'Bar Chart', 'Line Chart', 'Scatter Plot']
+        display_types = ['Percentage', 'Number']
         frame = ctk.CTkFrame(self)
         frame.pack(pady=10, padx=10, fill='both', expand=True)
         for column in columns:
             var = ctk.StringVar(value='Pie Chart')
+            display_var = ctk.StringVar(value='Percentage')
             row_frame = ctk.CTkFrame(frame)
             row_frame.pack(anchor='w', fill='x')
             ctk.CTkLabel(row_frame, text=column).pack(side='left', padx=10)
             chart_type_menu = ctk.CTkOptionMenu(row_frame, variable=var, values=chart_types)
             chart_type_menu.pack(side='left')
+            display_type_menu = ctk.CTkOptionMenu(row_frame, variable=display_var, values=display_types)
+            display_type_menu.pack(side='left')
             self.chart_type_vars[column] = var
+            self.display_type_vars[column] = display_var
         ctk.CTkButton(self, text="OK", command=self.on_ok).pack(pady=10)
 
     def on_ok(self):
-        column_chart_pairs = [(column, var.get()) for column, var in self.chart_type_vars.items()]
+        column_chart_pairs = [(column, var.get(), self.display_type_vars[column].get()) for column, var in self.chart_type_vars.items()]
         self.callback(column_chart_pairs)
         self.destroy()
 
@@ -58,7 +63,7 @@ class App:
         self.column_vars = {}
         self.output_folder = ""
         self.config = load_config()
-        root.title('Report Generator')
+        root.title('Linkgraph')
         root.geometry("750x600")
         apply_style(root)
 
@@ -77,8 +82,8 @@ class App:
         logo_label.image = logo_photo
         logo_label.pack(side='left')
 
-        ctk.CTkButton(top_frame, text="Open Excel File", command=self.open_file).pack(side='left', padx=10)
-        ctk.CTkButton(top_frame, text="Select Output Folder", command=self.select_output_folder).pack(side='left', padx=10)
+        ctk.CTkButton(top_frame, text="Ouvrir le fichier Excel", command=self.open_file).pack(side='left', padx=10)
+        ctk.CTkButton(top_frame, text="Choisir le dossier de sortie", command=self.select_output_folder).pack(side='left', padx=10)
 
         self.columns_canvas = ctk.CTkCanvas(middle_frame)
         self.columns_frame = ctk.CTkFrame(self.columns_canvas)
@@ -89,17 +94,16 @@ class App:
         self.columns_canvas.create_window((4, 4), window=self.columns_frame, anchor="nw", tags="self.columns_frame")
         self.columns_frame.bind("<Configure>", self.on_frame_configure)
 
-        # Group buttons in a single frame for horizontal alignment
         buttons_frame = ctk.CTkFrame(bottom_frame)
         buttons_frame.pack(pady=10, padx=10)
 
-        ctk.CTkButton(buttons_frame, text="Generate Report", command=self.show_chart_selection_dialog).pack(side='left', padx=5)
-        ctk.CTkButton(buttons_frame, text="Generate Interactive Map", command=self.generate_map).pack(side='left', padx=5)
+        ctk.CTkButton(buttons_frame, text="Generer le rappport", command=self.show_chart_selection_dialog).pack(side='left', padx=5)
+        ctk.CTkButton(buttons_frame, text="Generer la carte interactive", command=self.generate_map).pack(side='left', padx=5)
 
         ctk.CTkLabel(top_frame, text=f"Version: {APP_VERSION}").pack(side='left', padx=10)
 
     def open_file(self):
-        file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
+        file_path = filedialog.askopenfilename(title="Choisir le Fichier Excel", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
         if file_path:
             self.df, self.columns = load_data(file_path)
             if self.df is not None:
@@ -121,7 +125,7 @@ class App:
     def show_chart_selection_dialog(self):
         selected_columns = [column for column, var in self.column_vars.items() if var.get() == 1]
         if not selected_columns:
-            messagebox.showerror("Error", "No columns selected.")
+            messagebox.showerror("Erreur", "Aucune colonne sélectionnée.")
             return
         ChartSelectionDialog(self.root, selected_columns, self.set_column_chart_pairs)
 
@@ -148,7 +152,7 @@ class App:
             additional_columns = [column for column, var in self.column_vars.items() if var.get() == 1 and column not in [lat_col, lon_col]]
             generate_interactive_map(self.df, lat_col, lon_col, additional_columns, self.output_folder)
         else:
-            messagebox.showerror("Error", "Latitude and/or Longitude columns not detected.")
+            messagebox.showerror("Error", "latitude ou longitude non trouvée.")
 
     def on_frame_configure(self, event):
         self.columns_canvas.configure(scrollregion=self.columns_canvas.bbox("all"))
