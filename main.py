@@ -14,9 +14,8 @@ from reports import load_data, generate_charts, create_pdf_report
 APP_VERSION = "BETA V0.2.0"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Set appearance mode and default theme
-ctk.set_appearance_mode("Light")  # Modes: "System", "Dark", "Light"
-ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
+ctk.set_appearance_mode("Light")
+ctk.set_default_color_theme("blue")
 
 def detect_gps_columns(df):
     lat_col = None
@@ -86,23 +85,20 @@ class App(ctk.CTk):
         self.bottom_frame = ctk.CTkFrame(self, corner_radius=0)
         self.bottom_frame.grid(row=2, column=0, columnspan=4, sticky="ew", padx=10, pady=10)
 
-        # Correctly handle file paths for PyInstaller
         logo_path = os.path.join(sys._MEIPASS, "images", "icon_app.png") if getattr(sys, 'frozen', False) else "images/icon_app.png"
         logo_image = Image.open(logo_path)
         logo_image = logo_image.resize((50, 50), Resampling.LANCZOS)
 
-        # Create CTkImage object
         logo_ctk_image = ctk.CTkImage(light_image=logo_image, size=(50, 50))
 
         logo_label = ctk.CTkLabel(self.top_frame, image=logo_ctk_image, text="")
         logo_label.grid(row=0, column=0, padx=10)
 
-        ctk.CTkButton(self.top_frame, text="Ouvrir le fichier Excel", command=self.open_file).grid(row=0, column=1, padx=10)
-        ctk.CTkButton(self.top_frame, text="Choisir le dossier de sortie", command=self.select_output_folder).grid(row=0, column=2, padx=10)
+        ctk.CTkButton(self.top_frame, text="Ouvrir le fichier Excel", fg_color="#48B77D", command=self.open_file).grid(row=0, column=1, padx=10)
+        ctk.CTkButton(self.top_frame, text="Choisir le dossier de sortie", fg_color="#EA504C", command=self.select_output_folder).grid(row=0, column=2, padx=10)
 
-        # Add dropdown menu for changing appearance mode
-        appearance_mode_var = ctk.StringVar(value="System")
-        appearance_menu = ctk.CTkOptionMenu(self.top_frame, variable=appearance_mode_var, values=["Light", "Dark"], command=self.change_appearance_mode)
+        appearance_mode_var = ctk.StringVar( value="Systeme")
+        appearance_menu = ctk.CTkOptionMenu(self.top_frame, variable=appearance_mode_var, values=["Light", "Dark"],fg_color="#0078D4", command=self.change_appearance_mode)
         appearance_menu.grid(row=0, column=3, padx=10)
 
         self.columns_canvas = ctk.CTkCanvas(self.middle_frame)
@@ -117,8 +113,8 @@ class App(ctk.CTk):
         buttons_frame = ctk.CTkFrame(self.bottom_frame)
         buttons_frame.pack(pady=10)
 
-        ctk.CTkButton(buttons_frame, text="Generer le rappport", command=self.show_chart_selection_dialog, fg_color="#0078D4", text_color="#FFF6E9").pack(side='left', padx=5)
-        ctk.CTkButton(buttons_frame, text="Generer la carte interactive", command=self.generate_map, fg_color="#0078D4", text_color="#FFF6E9").pack(side='left', padx=5)
+        ctk.CTkButton(buttons_frame, text="Generer le rappport", command=self.show_chart_selection_dialog, fg_color="#2B2171", text_color="#FFF6E9").pack(side='left', padx=5)
+        ctk.CTkButton(buttons_frame, text="Generer la carte interactive", command=self.generate_map, fg_color="#2B2171", text_color="#FFF6E9").pack(side='left', padx=5)
 
         ctk.CTkLabel(self.top_frame, text=f"Version: {APP_VERSION}").grid(row=0, column=4, padx=10)
 
