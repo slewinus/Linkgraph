@@ -1,3 +1,4 @@
+# reports.py
 import logging
 import os
 import sys
@@ -31,7 +32,7 @@ def generate_charts(df, column_chart_pairs, config, output_folder):
             plt.figure(figsize=figsize)
             if chart_type == 'Pie Chart':
                 if not value_counts.empty and value_counts.sum() > 0:
-                    if display_type == 'Percentage':
+                    if display_type == '%':
                         plt.pie(value_counts, autopct='%1.1f%%', startangle=90, colors=config['data_colors'][:len(value_counts)])
                     else:
                         plt.pie(value_counts, autopct=lambda p: f'{int(p * sum(value_counts) / 100)}', startangle=90, colors=config['data_colors'][:len(value_counts)])
@@ -39,10 +40,10 @@ def generate_charts(df, column_chart_pairs, config, output_folder):
                     plt.axis('equal')
             elif chart_type == 'Bar Chart':
                 value_counts.plot(kind='bar', color=config['data_colors'])
-                plt.ylabel('Count' if display_type == 'Number' else 'Percentage')
+                plt.ylabel('Count' if display_type == 'Nombre' else 'Percentage')
                 plt.xlabel(column)
                 plt.xticks(rotation=45)
-                if display_type == 'Percentage':
+                if display_type == '%':
                     total = value_counts.sum()
                     for i, value in enumerate(value_counts):
                         plt.text(i, value + 1, f'{(value / total) * 100:.1f}%', ha='center')

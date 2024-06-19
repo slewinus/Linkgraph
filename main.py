@@ -1,3 +1,4 @@
+# main.py
 import logging
 import os
 import sys
@@ -33,12 +34,12 @@ class ChartSelectionDialog(ctk.CTkToplevel):
         self.display_type_vars = {}
         self.callback = callback
         chart_types = ['Pie Chart', 'Bar Chart', 'Line Chart', 'Scatter Plot']
-        display_types = ['Percentage', 'Number']
+        display_types = ['%', 'Nombre']
         frame = ctk.CTkFrame(self)
         frame.pack(pady=10, padx=10, fill='both', expand=True)
         for column in columns:
             var = ctk.StringVar(value='Pie Chart')
-            display_var = ctk.StringVar(value='Percentage')
+            display_var = ctk.StringVar(value='%')
             row_frame = ctk.CTkFrame(frame)
             row_frame.pack(anchor='w', fill='x')
             ctk.CTkLabel(row_frame, text=column).pack(side='left', padx=10)
@@ -78,7 +79,7 @@ class App:
         logo_image = Image.open(logo_path)
         logo_image = logo_image.resize((50, 50), Resampling.LANCZOS)
         logo_photo = ImageTk.PhotoImage(logo_image)
-        logo_label = ctk.CTkLabel(top_frame, image=logo_photo)
+        logo_label = ctk.CTkLabel(top_frame, image=logo_photo, text="")
         logo_label.image = logo_photo
         logo_label.pack(side='left')
 
@@ -145,6 +146,7 @@ class App:
             return
         charts = generate_charts(self.df, self.column_chart_pairs, self.config, self.output_folder)
         create_pdf_report(self.config, charts, self.output_folder)
+        messagebox.showinfo("Success", "PDF file has been generated successfully.")
 
     def generate_map(self):
         lat_col, lon_col = detect_gps_columns(self.df)
