@@ -105,13 +105,6 @@ class App(ctk.CTk):
         appearance_menu = ctk.CTkOptionMenu(self.top_frame, variable=appearance_mode_var, values=["Light", "Dark"], command=self.change_appearance_mode)
         appearance_menu.grid(row=0, column=3, padx=10)
 
-        # Add scaling menu
-        scaling_label = ctk.CTkLabel(self.top_frame, text="UI Scaling:", anchor="w")
-        scaling_label.grid(row=0, column=4, padx=10)
-        scaling_menu = ctk.CTkOptionMenu(self.top_frame, values=["80%", "90%", "100%", "110%", "120%"], command=self.change_scaling)
-        scaling_menu.set("100%")
-        scaling_menu.grid(row=0, column=5, padx=10)
-
         self.columns_canvas = ctk.CTkCanvas(self.middle_frame)
         self.columns_frame = ctk.CTkFrame(self.columns_canvas)
         self.vsb = ctk.CTkScrollbar(self.middle_frame, command=self.columns_canvas.yview)
@@ -122,12 +115,12 @@ class App(ctk.CTk):
         self.columns_frame.bind("<Configure>", self.on_frame_configure)
 
         buttons_frame = ctk.CTkFrame(self.bottom_frame)
-        buttons_frame.pack(pady=10, padx=10)
+        buttons_frame.pack(pady=10)
 
-        ctk.CTkButton(buttons_frame, text="Generer le rappport", command=self.show_chart_selection_dialog).pack(side='left', padx=5)
-        ctk.CTkButton(buttons_frame, text="Generer la carte interactive", command=self.generate_map).pack(side='left', padx=5)
+        ctk.CTkButton(buttons_frame, text="Generer le rappport", command=self.show_chart_selection_dialog, fg_color="#0078D4", text_color="#FFF6E9").pack(side='left', padx=5)
+        ctk.CTkButton(buttons_frame, text="Generer la carte interactive", command=self.generate_map, fg_color="#0078D4", text_color="#FFF6E9").pack(side='left', padx=5)
 
-        ctk.CTkLabel(self.top_frame, text=f"Version: {APP_VERSION}").grid(row=0, column=6, padx=10)
+        ctk.CTkLabel(self.top_frame, text=f"Version: {APP_VERSION}").grid(row=0, column=4, padx=10)
 
     def open_file(self):
         file_path = filedialog.askopenfilename(title="Choisir le Fichier Excel", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
@@ -139,7 +132,7 @@ class App(ctk.CTk):
                 self.column_vars = {}
                 for column in self.columns:
                     var = IntVar()
-                    chk = ctk.CTkCheckBox(self.columns_frame, text=column, variable=var)
+                    chk = ctk.CTkCheckBox(self.columns_frame, text=column, variable=var, fg_color="#0078D4", text_color="#FFF6E9")
                     chk.pack(anchor='w')
                     self.column_vars[column] = var
 
@@ -189,18 +182,17 @@ class App(ctk.CTk):
         ctk.set_appearance_mode(new_mode)
         self.update_background_colors()
 
-    def change_scaling(self, new_scaling):
-        new_scaling_float = int(new_scaling.replace("%", "")) / 100
-        ctk.set_widget_scaling(new_scaling_float)
-
     def update_background_colors(self):
         current_mode = ctk.get_appearance_mode()
         if current_mode == "Dark":
             bg_color = "#333333"
+            fg_button_color = "#000000"
         elif current_mode == "Light":
-            bg_color = "#FFFFFF"
+            bg_color = "#F6F5F2"
+            fg_button_color = "#F6F5F2"
         else:  # system
             bg_color = "#F0F0F0"
+            fg_button_color = "#0078D4"
 
         self.configure(bg=bg_color)
         self.top_frame.configure(fg_color=bg_color)
@@ -208,6 +200,11 @@ class App(ctk.CTk):
         self.bottom_frame.configure(fg_color=bg_color)
         self.columns_canvas.configure(bg=bg_color)
         self.columns_frame.configure(fg_color=bg_color)
+
+        # Update button colors
+        for button in self.bottom_frame.winfo_children():
+            if isinstance(button, ctk.CTkButton):
+                button.configure(fg_color=fg_button_color, text_color=bg_color)
 
 if __name__ == "__main__":
     app = App()
