@@ -1,10 +1,9 @@
-# main.py
 import logging
 import os
 import sys
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, IntVar
-from PIL import ImageTk, Image
+from PIL import Image
 from PIL.Image import Resampling
 import re
 
@@ -14,6 +13,10 @@ from reports import load_data, generate_charts, create_pdf_report
 
 APP_VERSION = "BETA V0.2.0"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Set appearance mode and default theme
+ctk.set_appearance_mode("Light")  # Modes: "System", "Dark", "Light"
+ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
 
 def detect_gps_columns(df):
     lat_col = None
@@ -56,52 +59,75 @@ class ChartSelectionDialog(ctk.CTkToplevel):
         self.callback(column_chart_pairs)
         self.destroy()
 
-class App:
-    def __init__(self, root):
-        self.root = root
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
         self.df = None
         self.columns = []
         self.column_vars = {}
         self.output_folder = ""
         self.config = load_config()
-        root.title('Linkgraph')
-        root.geometry("750x600")
-        apply_style(root)
 
-        top_frame = ctk.CTkFrame(root)
-        top_frame.pack(pady=10, padx=10, fill='x')
-        middle_frame = ctk.CTkFrame(root)
-        middle_frame.pack(pady=10, padx=10, fill='both', expand=True)
-        bottom_frame = ctk.CTkFrame(root)
-        bottom_frame.pack(pady=10, padx=10, fill='x')
+        # Configure window
+        self.title('Linkgraph')
+        self.geometry("750x600")
+        apply_style(self)
 
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=1)
+        self.grid_columnconfigure(3, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        self.top_frame = ctk.CTkFrame(self, corner_radius=0)
+        self.top_frame.grid(row=0, column=0, columnspan=4, sticky="ew", padx=10, pady=10)
+        self.middle_frame = ctk.CTkFrame(self, corner_radius=0)
+        self.middle_frame.grid(row=1, column=0, columnspan=4, sticky="nsew", padx=10, pady=10)
+        self.bottom_frame = ctk.CTkFrame(self, corner_radius=0)
+        self.bottom_frame.grid(row=2, column=0, columnspan=4, sticky="ew", padx=10, pady=10)
+
+        # Correctly handle file paths for PyInstaller
         logo_path = os.path.join(sys._MEIPASS, "images", "icon_app.png") if getattr(sys, 'frozen', False) else "images/icon_app.png"
         logo_image = Image.open(logo_path)
         logo_image = logo_image.resize((50, 50), Resampling.LANCZOS)
-        logo_photo = ImageTk.PhotoImage(logo_image)
-        logo_label = ctk.CTkLabel(top_frame, image=logo_photo, text="")
-        logo_label.image = logo_photo
-        logo_label.pack(side='left')
 
-        ctk.CTkButton(top_frame, text="Ouvrir le fichier Excel", command=self.open_file).pack(side='left', padx=10)
-        ctk.CTkButton(top_frame, text="Choisir le dossier de sortie", command=self.select_output_folder).pack(side='left', padx=10)
+        # Create CTkImage object
+        logo_ctk_image = ctk.CTkImage(light_image=logo_image, size=(50, 50))
 
-        self.columns_canvas = ctk.CTkCanvas(middle_frame)
+        logo_label = ctk.CTkLabel(self.top_frame, image=logo_ctk_image, text="")
+        logo_label.grid(row=0, column=0, padx=10)
+
+        ctk.CTkButton(self.top_frame, text="Ouvrir le fichier Excel", command=self.open_file).grid(row=0, column=1, padx=10)
+        ctk.CTkButton(self.top_frame, text="Choisir le dossier de sortie", command=self.select_output_folder).grid(row=0, column=2, padx=10)
+
+        # Add dropdown menu for changing appearance mode
+        appearance_mode_var = ctk.StringVar(value="System")
+        appearance_menu = ctk.CTkOptionMenu(self.top_frame, variable=appearance_mode_var, values=["Light", "Dark"], command=self.change_appearance_mode)
+        appearance_menu.grid(row=0, column=3, padx=10)
+
+        # Add scaling menu
+        scaling_label = ctk.CTkLabel(self.top_frame, text="UI Scaling:", anchor="w")
+        scaling_label.grid(row=0, column=4, padx=10)
+        scaling_menu = ctk.CTkOptionMenu(self.top_frame, values=["80%", "90%", "100%", "110%", "120%"], command=self.change_scaling)
+        scaling_menu.set("100%")
+        scaling_menu.grid(row=0, column=5, padx=10)
+
+        self.columns_canvas = ctk.CTkCanvas(self.middle_frame)
         self.columns_frame = ctk.CTkFrame(self.columns_canvas)
-        self.vsb = ctk.CTkScrollbar(middle_frame, command=self.columns_canvas.yview)
+        self.vsb = ctk.CTkScrollbar(self.middle_frame, command=self.columns_canvas.yview)
         self.columns_canvas.configure(yscrollcommand=self.vsb.set)
         self.vsb.pack(side="right", fill="y")
         self.columns_canvas.pack(side="left", fill="both", expand=True)
         self.columns_canvas.create_window((4, 4), window=self.columns_frame, anchor="nw", tags="self.columns_frame")
         self.columns_frame.bind("<Configure>", self.on_frame_configure)
 
-        buttons_frame = ctk.CTkFrame(bottom_frame)
+        buttons_frame = ctk.CTkFrame(self.bottom_frame)
         buttons_frame.pack(pady=10, padx=10)
 
         ctk.CTkButton(buttons_frame, text="Generer le rappport", command=self.show_chart_selection_dialog).pack(side='left', padx=5)
         ctk.CTkButton(buttons_frame, text="Generer la carte interactive", command=self.generate_map).pack(side='left', padx=5)
 
-        ctk.CTkLabel(top_frame, text=f"Version: {APP_VERSION}").pack(side='left', padx=10)
+        ctk.CTkLabel(self.top_frame, text=f"Version: {APP_VERSION}").grid(row=0, column=6, padx=10)
 
     def open_file(self):
         file_path = filedialog.askopenfilename(title="Choisir le Fichier Excel", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
@@ -128,7 +154,7 @@ class App:
         if not selected_columns:
             messagebox.showerror("Erreur", "Aucune colonne sélectionnée.")
             return
-        ChartSelectionDialog(self.root, selected_columns, self.set_column_chart_pairs)
+        ChartSelectionDialog(self, selected_columns, self.set_column_chart_pairs)
 
     def set_column_chart_pairs(self, column_chart_pairs):
         self.column_chart_pairs = column_chart_pairs
@@ -159,7 +185,30 @@ class App:
     def on_frame_configure(self, event):
         self.columns_canvas.configure(scrollregion=self.columns_canvas.bbox("all"))
 
+    def change_appearance_mode(self, new_mode):
+        ctk.set_appearance_mode(new_mode)
+        self.update_background_colors()
+
+    def change_scaling(self, new_scaling):
+        new_scaling_float = int(new_scaling.replace("%", "")) / 100
+        ctk.set_widget_scaling(new_scaling_float)
+
+    def update_background_colors(self):
+        current_mode = ctk.get_appearance_mode()
+        if current_mode == "Dark":
+            bg_color = "#333333"
+        elif current_mode == "Light":
+            bg_color = "#FFFFFF"
+        else:  # system
+            bg_color = "#F0F0F0"
+
+        self.configure(bg=bg_color)
+        self.top_frame.configure(fg_color=bg_color)
+        self.middle_frame.configure(fg_color=bg_color)
+        self.bottom_frame.configure(fg_color=bg_color)
+        self.columns_canvas.configure(bg=bg_color)
+        self.columns_frame.configure(fg_color=bg_color)
+
 if __name__ == "__main__":
-    root = ctk.CTk()
-    app = App(root)
-    root.mainloop()
+    app = App()
+    app.mainloop()
