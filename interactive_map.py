@@ -1,6 +1,6 @@
 import logging
 import os
-from tkinter import filedialog, messagebox, IntVar
+from tkinter import messagebox
 import re
 import folium
 import folium.plugins as plugins
