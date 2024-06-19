@@ -122,6 +122,8 @@ class App(ctk.CTk):
 
         ctk.CTkLabel(self.top_frame, text=f"Version: {APP_VERSION}").grid(row=0, column=4, padx=10)
 
+        self.update_text_colors()
+
     def open_file(self):
         file_path = filedialog.askopenfilename(title="Choisir le Fichier Excel", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
         if file_path:
@@ -132,9 +134,10 @@ class App(ctk.CTk):
                 self.column_vars = {}
                 for column in self.columns:
                     var = IntVar()
-                    chk = ctk.CTkCheckBox(self.columns_frame, text=column, variable=var, fg_color="#0078D4", text_color="#FFF6E9")
+                    chk = ctk.CTkCheckBox(self.columns_frame, text=column, variable=var, fg_color="#0078D4")
                     chk.pack(anchor='w')
                     self.column_vars[column] = var
+                self.update_text_colors()
 
     def select_output_folder(self):
         folder_selected = filedialog.askdirectory()
@@ -181,6 +184,7 @@ class App(ctk.CTk):
     def change_appearance_mode(self, new_mode):
         ctk.set_appearance_mode(new_mode)
         self.update_background_colors()
+        self.update_text_colors()
 
     def update_background_colors(self):
         current_mode = ctk.get_appearance_mode()
@@ -205,6 +209,19 @@ class App(ctk.CTk):
         for button in self.bottom_frame.winfo_children():
             if isinstance(button, ctk.CTkButton):
                 button.configure(fg_color=fg_button_color, text_color=bg_color)
+
+    def update_text_colors(self):
+        current_mode = ctk.get_appearance_mode()
+        if current_mode == "Dark":
+            text_color = "#FFF6E9"
+        elif current_mode == "Light":
+            text_color = "#333333"
+        else:  # system
+            text_color = "#000000"
+
+        for child in self.columns_frame.winfo_children():
+            if isinstance(child, ctk.CTkCheckBox):
+                child.configure(text_color=text_color)
 
 if __name__ == "__main__":
     app = App()
