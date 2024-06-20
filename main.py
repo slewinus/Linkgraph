@@ -8,15 +8,24 @@ from PIL.Image import Resampling
 import re
 
 from config import apply_style, load_config
-from interactive_map import generate_interactive_map, detect_gps_columns
+from interactive_map import generate_interactive_map
 from reports import load_data, generate_charts, create_pdf_report
 
 APP_VERSION = "BETA V0.2.0"
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Configure logging to write to a file
+log_file = "app.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+)
 
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
-
 
 def detect_gps_columns(df):
     lat_col = None
@@ -27,7 +36,6 @@ def detect_gps_columns(df):
         if re.search(r'longitude|lon|gps x', col, re.IGNORECASE):
             lon_col = col
     return lat_col, lon_col
-
 
 class ChartSelectionDialog(ctk.CTkToplevel):
     def __init__(self, parent, columns, callback):
@@ -41,9 +49,9 @@ class ChartSelectionDialog(ctk.CTkToplevel):
         display_types = ['%', 'Nombre']
         frame = ctk.CTkFrame(self)
         frame.pack(pady=10, padx=10, fill='both', expand=True)
-        for column in columns:
 
-            if column.strip() and not column.startswith("Unnamed"):
+        for column in columns:
+            if column not in self.chart_type_vars:  # Eviter la duplication
                 var = ctk.StringVar(value='Pie Chart')
                 display_var = ctk.StringVar(value='%')
                 row_frame = ctk.CTkFrame(frame)
@@ -55,17 +63,6 @@ class ChartSelectionDialog(ctk.CTkToplevel):
                 display_type_menu.pack(side='left')
                 self.chart_type_vars[column] = var
                 self.display_type_vars[column] = display_var
-            var = ctk.StringVar(value='Pie Chart')
-            display_var = ctk.StringVar(value='%')
-            row_frame = ctk.CTkFrame(frame)
-            row_frame.pack(anchor='w', fill='x')
-            ctk.CTkLabel(row_frame, text=column).pack(side='left', padx=10)
-            chart_type_menu = ctk.CTkOptionMenu(row_frame, variable=var, values=chart_types)
-            chart_type_menu.pack(side='left')
-            display_type_menu = ctk.CTkOptionMenu(row_frame, variable=display_var, values=display_types)
-            display_type_menu.pack(side='left')
-            self.chart_type_vars[column] = var
-            self.display_type_vars[column] = display_var
 
         ctk.CTkButton(self, text="OK", command=self.on_ok).pack(pady=10)
 
@@ -82,6 +79,8 @@ class App(ctk.CTk):
         self.column_vars = {}
         self.output_folder = ""
         self.config = load_config()
+
+        logging.info(f"Configuration loaded: {self.config}")
 
         # Configure window
         self.title('Linkgraph')
@@ -102,23 +101,19 @@ class App(ctk.CTk):
         self.bottom_frame.grid(row=2, column=0, columnspan=4, sticky="ew", padx=10, pady=10)
 
         logo_path = os.path.join(sys._MEIPASS, "images", "icon_app.png") if getattr(sys, 'frozen', False) else "images/icon_app.png"
+        logging.info(f"Logo path: {logo_path}")
+
         logo_image = Image.open(logo_path)
         logo_image = logo_image.resize((50, 50), Resampling.LANCZOS)
-
         logo_ctk_image = ctk.CTkImage(light_image=logo_image, size=(50, 50))
-
         logo_label = ctk.CTkLabel(self.top_frame, image=logo_ctk_image, text="")
         logo_label.grid(row=0, column=0, padx=10)
 
         ctk.CTkButton(self.top_frame, text="Ouvrir le fichier Excel", fg_color="#48B77D", command=self.open_file).grid(row=0, column=1, padx=10)
         ctk.CTkButton(self.top_frame, text="Choisir le dossier de sortie", fg_color="#EA504C", command=self.select_output_folder).grid(row=0, column=2, padx=10)
 
-
         appearance_mode_var = ctk.StringVar(value="Systeme")
         appearance_menu = ctk.CTkOptionMenu(self.top_frame, variable=appearance_mode_var, values=["Light", "Dark"], fg_color="#0078D4", command=self.change_appearance_mode)
-
-        appearance_mode_var = ctk.StringVar( value="Systeme")
-        appearance_menu = ctk.CTkOptionMenu(self.top_frame, variable=appearance_mode_var, values=["Light", "Dark"],fg_color="#0078D4", command=self.change_appearance_mode)
         appearance_menu.grid(row=0, column=3, padx=10)
 
         self.columns_canvas = ctk.CTkCanvas(self.middle_frame)
@@ -144,17 +139,18 @@ class App(ctk.CTk):
         file_path = filedialog.askopenfilename(title="Choisir le Fichier Excel", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
         if file_path:
             self.df, self.columns = load_data(file_path)
+            logging.info(f"File loaded: {file_path}")
+            logging.info(f"Columns: {self.columns}")
             if self.df is not None:
-                # Filtrer les colonnes sans nom et celles commençant par "Unnamed"
-                self.columns = [col for col in self.columns if col.strip() and not col.startswith("Unnamed")]
                 for widget in self.columns_frame.winfo_children():
                     widget.destroy()
                 self.column_vars = {}
                 for column in self.columns:
-                    var = IntVar()
-                    chk = ctk.CTkCheckBox(self.columns_frame, text=column, variable=var, fg_color="#0078D4")
-                    chk.pack(anchor='w')
-                    self.column_vars[column] = var
+                    if column:  # Vérifiez que la colonne n'est pas vide
+                        var = IntVar()
+                        chk = ctk.CTkCheckBox(self.columns_frame, text=column, variable=var, fg_color="#0078D4")
+                        chk.pack(anchor='w')
+                        self.column_vars[column] = var
                 self.update_text_colors()
 
     def select_output_folder(self):
@@ -165,6 +161,7 @@ class App(ctk.CTk):
 
     def show_chart_selection_dialog(self):
         selected_columns = [column for column, var in self.column_vars.items() if var.get() == 1]
+        logging.info(f"Selected columns: {selected_columns}")
         if not selected_columns:
             messagebox.showerror("Erreur", "Aucune colonne sélectionnée.")
             return
@@ -172,6 +169,7 @@ class App(ctk.CTk):
 
     def set_column_chart_pairs(self, column_chart_pairs):
         self.column_chart_pairs = column_chart_pairs
+        logging.info(f"Column chart pairs: {self.column_chart_pairs}")
         self.generate_report()
 
     def generate_report(self):
@@ -184,9 +182,18 @@ class App(ctk.CTk):
         if not self.config:
             messagebox.showerror("Error", "Configuration not loaded.")
             return
-        charts = generate_charts(self.df, self.column_chart_pairs, self.config, self.output_folder)
+
+        logging.info(f"Starting to generate charts for columns: {self.column_chart_pairs}")
+
+        # Generate charts
+        charts = list(generate_charts(self.df, self.column_chart_pairs, self.config, self.output_folder))
+
+        logging.info(f"Charts generated: {charts}")
+
+        # Create PDF report
         create_pdf_report(self.config, charts, self.output_folder)
         messagebox.showinfo("Success", "PDF file has been generated successfully.")
+
 
     def generate_map(self):
         lat_col, lon_col = detect_gps_columns(self.df)
@@ -236,6 +243,7 @@ class App(ctk.CTk):
             text_color = "#333333"
         else:  # system
             text_color = "#000000"
+
         for child in self.columns_frame.winfo_children():
             if isinstance(child, ctk.CTkCheckBox):
                 child.configure(text_color=text_color)
