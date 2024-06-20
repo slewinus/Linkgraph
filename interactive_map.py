@@ -1,14 +1,12 @@
 import logging
 import os
+
 from tkinter import messagebox
 import re
 import folium
 import folium.plugins as plugins
 from datetime import datetime
 
-
-APP_VERSION = "BETA V0.1.9"
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def detect_gps_columns(df):
     lat_col = None
