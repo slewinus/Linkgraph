@@ -1,11 +1,10 @@
 import logging
 import os
-
-from tkinter import messagebox
 import re
 import folium
 import folium.plugins as plugins
 from datetime import datetime
+from tkinter import messagebox
 
 
 def detect_gps_columns(df):
@@ -17,6 +16,7 @@ def detect_gps_columns(df):
         if re.search(r'longitude|lon|gps x', col, re.IGNORECASE):
             lon_col = col
     return lat_col, lon_col
+
 
 def generate_interactive_map(df, lat_col, lon_col, additional_columns, output_folder):
     if lat_col not in df.columns or lon_col not in df.columns:
@@ -31,9 +31,9 @@ def generate_interactive_map(df, lat_col, lon_col, additional_columns, output_fo
     marker_cluster = plugins.MarkerCluster().add_to(m)
 
     for _, row in df.iterrows():
-        popup_text = f"GPS Y: {row[lat_col]}, GPS X: {row[lon_col]}"
+        popup_text = ""
         for col in additional_columns:
-            popup_text += f"<br>{col}: {row[col]}"
+            popup_text += f"{col}: {row[col]}<br>"
 
         color = "green"
 
@@ -57,7 +57,7 @@ def generate_interactive_map(df, lat_col, lon_col, additional_columns, output_fo
 
         marker = folium.Marker(
             location=[row[lat_col], row[lon_col]],
-            popup=popup_text,
+            popup=popup_text.strip("<br>"),
             icon=folium.Icon(color=color)
         )
         marker.add_to(marker_cluster)

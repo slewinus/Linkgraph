@@ -2,18 +2,18 @@ import logging
 import os
 import sys
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, IntVar
+from tkinter import filedialog, messagebox, IntVar, BooleanVar
 from PIL import Image
 from PIL.Image import Resampling
+import pandas as pd
 import re
 
 from config import apply_style, load_config
 from interactive_map import generate_interactive_map
-from reports import load_data, generate_charts, create_pdf_report
+from reports import generate_charts, create_pdf_report
 
 APP_VERSION = "BETA V0.2.0"
 
-# Configure logging to write to a file
 log_file = "app.log"
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +37,23 @@ def detect_gps_columns(df):
             lon_col = col
     return lat_col, lon_col
 
+class SheetSelectionDialog(ctk.CTkToplevel):
+    def __init__(self, parent, sheets, callback):
+        super().__init__(parent)
+        self.title("Select Sheet")
+        self.geometry("300x200")
+        self.callback = callback
+        self.sheets = sheets
+        self.sheet_var = ctk.StringVar(value=sheets[0])
+        ctk.CTkLabel(self, text="Select the sheet:").pack(pady=10)
+        ctk.CTkOptionMenu(self, variable=self.sheet_var, values=sheets).pack(pady=10)
+        ctk.CTkButton(self, text="OK", command=self.on_ok).pack(pady=10)
+
+    def on_ok(self):
+        selected_sheet = self.sheet_var.get()
+        self.callback(selected_sheet)
+        self.destroy()
+
 class ChartSelectionDialog(ctk.CTkToplevel):
     def __init__(self, parent, columns, callback):
         super().__init__(parent)
@@ -51,9 +68,9 @@ class ChartSelectionDialog(ctk.CTkToplevel):
         frame.pack(pady=10, padx=10, fill='both', expand=True)
 
         for column in columns:
-            if column not in self.chart_type_vars:  # Eviter la duplication
+            if column not in self.chart_type_vars:
                 var = ctk.StringVar(value='Pie Chart')
-                display_var = ctk.StringVar(value='%')
+                display_var = ctk.StringVar(value='Nombre')
                 row_frame = ctk.CTkFrame(frame)
                 row_frame.pack(anchor='w', fill='x')
                 ctk.CTkLabel(row_frame, text=column).pack(side='left', padx=10)
@@ -131,6 +148,9 @@ class App(ctk.CTk):
         ctk.CTkButton(buttons_frame, text="Generer le rappport", command=self.show_chart_selection_dialog, fg_color="#2B2171", text_color="#FFF6E9").pack(side='left', padx=5)
         ctk.CTkButton(buttons_frame, text="Generer la carte interactive", command=self.generate_map, fg_color="#2B2171", text_color="#FFF6E9").pack(side='left', padx=5)
 
+        self.generate_pdf_var = BooleanVar(value=False)
+        ctk.CTkCheckBox(buttons_frame, text="Générer un rapport PDF", variable=self.generate_pdf_var).pack(side='left', padx=5)
+
         ctk.CTkLabel(self.top_frame, text=f"Version: {APP_VERSION}").grid(row=0, column=4, padx=10)
 
         self.update_text_colors()
@@ -138,7 +158,20 @@ class App(ctk.CTk):
     def open_file(self):
         file_path = filedialog.askopenfilename(title="Choisir le Fichier Excel", filetypes=[("Excel files", "*.xlsx *.xls *.xlsm")])
         if file_path:
-            self.df, self.columns = load_data(file_path)
+            try:
+                xls = pd.ExcelFile(file_path)
+                if len(xls.sheet_names) > 1:
+                    SheetSelectionDialog(self, xls.sheet_names, lambda sheet: self.load_data(file_path, sheet))
+                else:
+                    self.load_data(file_path, xls.sheet_names[0])
+            except Exception as e:
+                logging.error(f"Error loading Excel file: {e}")
+                messagebox.showerror("Error", f"Failed to load file: {str(e)}")
+
+    def load_data(self, file_path, sheet_name):
+        try:
+            self.df = pd.read_excel(file_path, sheet_name=sheet_name)
+            self.columns = [col for col in self.df.columns if not col.startswith('Unnamed')]
             logging.info(f"File loaded: {file_path}")
             logging.info(f"Columns: {self.columns}")
             if self.df is not None:
@@ -146,12 +179,15 @@ class App(ctk.CTk):
                     widget.destroy()
                 self.column_vars = {}
                 for column in self.columns:
-                    if column:  # Vérifiez que la colonne n'est pas vide
+                    if column:
                         var = IntVar()
                         chk = ctk.CTkCheckBox(self.columns_frame, text=column, variable=var, fg_color="#0078D4")
                         chk.pack(anchor='w')
                         self.column_vars[column] = var
                 self.update_text_colors()
+        except Exception as e:
+            logging.error(f"Error loading Excel sheet: {e}")
+            messagebox.showerror("Error", f"Failed to load sheet: {str(e)}")
 
     def select_output_folder(self):
         folder_selected = filedialog.askdirectory()
@@ -190,10 +226,12 @@ class App(ctk.CTk):
 
         logging.info(f"Charts generated: {charts}")
 
-        # Create PDF report
-        create_pdf_report(self.config, charts, self.output_folder)
-        messagebox.showinfo("Success", "PDF file has been generated successfully.")
-
+        # Create PDF report if the option is selected
+        if self.generate_pdf_var.get():
+            create_pdf_report(self.config, charts, self.output_folder)
+            messagebox.showinfo("Success", "PDF file has been generated successfully.")
+        else:
+            messagebox.showinfo("Success", "Charts have been generated successfully without PDF.")
 
     def generate_map(self):
         lat_col, lon_col = detect_gps_columns(self.df)
