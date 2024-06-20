@@ -5,6 +5,8 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox, IntVar
 from PIL import Image
 from PIL.Image import Resampling
+import re
+
 from config import apply_style, load_config
 from interactive_map import generate_interactive_map, detect_gps_columns
 from reports import load_data, generate_charts, create_pdf_report
@@ -14,6 +16,18 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
+
+
+def detect_gps_columns(df):
+    lat_col = None
+    lon_col = None
+    for col in df.columns:
+        if re.search(r'latitude|lat|gps y', col, re.IGNORECASE):
+            lat_col = col
+        if re.search(r'longitude|lon|gps x', col, re.IGNORECASE):
+            lon_col = col
+    return lat_col, lon_col
+
 
 class ChartSelectionDialog(ctk.CTkToplevel):
     def __init__(self, parent, columns, callback):
@@ -28,6 +42,7 @@ class ChartSelectionDialog(ctk.CTkToplevel):
         frame = ctk.CTkFrame(self)
         frame.pack(pady=10, padx=10, fill='both', expand=True)
         for column in columns:
+
             if column.strip() and not column.startswith("Unnamed"):
                 var = ctk.StringVar(value='Pie Chart')
                 display_var = ctk.StringVar(value='%')
@@ -40,6 +55,18 @@ class ChartSelectionDialog(ctk.CTkToplevel):
                 display_type_menu.pack(side='left')
                 self.chart_type_vars[column] = var
                 self.display_type_vars[column] = display_var
+            var = ctk.StringVar(value='Pie Chart')
+            display_var = ctk.StringVar(value='%')
+            row_frame = ctk.CTkFrame(frame)
+            row_frame.pack(anchor='w', fill='x')
+            ctk.CTkLabel(row_frame, text=column).pack(side='left', padx=10)
+            chart_type_menu = ctk.CTkOptionMenu(row_frame, variable=var, values=chart_types)
+            chart_type_menu.pack(side='left')
+            display_type_menu = ctk.CTkOptionMenu(row_frame, variable=display_var, values=display_types)
+            display_type_menu.pack(side='left')
+            self.chart_type_vars[column] = var
+            self.display_type_vars[column] = display_var
+
         ctk.CTkButton(self, text="OK", command=self.on_ok).pack(pady=10)
 
     def on_ok(self):
@@ -86,8 +113,12 @@ class App(ctk.CTk):
         ctk.CTkButton(self.top_frame, text="Ouvrir le fichier Excel", fg_color="#48B77D", command=self.open_file).grid(row=0, column=1, padx=10)
         ctk.CTkButton(self.top_frame, text="Choisir le dossier de sortie", fg_color="#EA504C", command=self.select_output_folder).grid(row=0, column=2, padx=10)
 
+
         appearance_mode_var = ctk.StringVar(value="Systeme")
         appearance_menu = ctk.CTkOptionMenu(self.top_frame, variable=appearance_mode_var, values=["Light", "Dark"], fg_color="#0078D4", command=self.change_appearance_mode)
+
+        appearance_mode_var = ctk.StringVar( value="Systeme")
+        appearance_menu = ctk.CTkOptionMenu(self.top_frame, variable=appearance_mode_var, values=["Light", "Dark"],fg_color="#0078D4", command=self.change_appearance_mode)
         appearance_menu.grid(row=0, column=3, padx=10)
 
         self.columns_canvas = ctk.CTkCanvas(self.middle_frame)
@@ -203,9 +234,8 @@ class App(ctk.CTk):
             text_color = "#FFF6E9"
         elif current_mode == "Light":
             text_color = "#333333"
-        else:
+        else:  # system
             text_color = "#000000"
-
         for child in self.columns_frame.winfo_children():
             if isinstance(child, ctk.CTkCheckBox):
                 child.configure(text_color=text_color)
