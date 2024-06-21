@@ -1,91 +1,98 @@
-### Version : BETA V0.2.0 🚀
-### Date de Publication : 20 Juin 2024
 
----
+# Linkgraph
 
-## Change Log 🛠️
+Linkgraph is a tool designed to analyze and visualize data from Excel files. It allows users to select specific columns and chart types (Pie, Histogram, Line, Scatter) to generate visual reports & interactive maps. Users can save these visualizations as images and create comprehensive PDF reports that include charts, titles, dates, logos, and configuration details. The tool supports interactive selection of Excel sheets and output folders, making it easy to organize and present data effectively.
 
-### BETA V0.2.0
-- **Nouvelle fonctionnalité** : Sélection de la feuille Excel lors de l'ouverture du fichier.
-- **Nouvelle fonctionnalité** : Option pour générer des rapports PDF.
-- **Nouvelle fonctionnalité** : Sélection des types de graphiques pour plusieurs colonnes.
-- **Amélioration** : Les colonnes "Unnamed" ne sont plus sélectionnables.
-- **Amélioration** : Interface utilisateur mise à jour avec des boutons en bas de l'interface.
-- **Correction de bugs** : Correction des erreurs de génération de PDF.
-- **Correction de bugs** : Correction des erreurs liées aux colonnes GPS dans les cartes interactives.
+# Installation
 
-### BETA V0.1.9
-- **Nouvelle fonctionnalité** : Génération de cartes interactives 🗺️.
-- **Nouvelle fonctionnalité** : Sélection multiple de colonnes pour les graphiques 📊.
-- **Nouvelle fonctionnalité** : Dialog de sélection des types de graphiques 🎨.
-- **Amélioration** : Interface utilisateur améliorée pour une meilleure navigation 🧭.
-- **Amélioration** : Gestion des erreurs améliorée avec des messages d'erreur plus détaillés 🚧.
-- **Correction de bugs** : Correction de divers bugs mineurs liés au chargement de fichiers Excel 🐛.
-- **Mise à jour** : Ajout d'un nouveau logo et d'icônes de meilleure qualité 🌟.
+To install and set up Linkgraph, follow these steps:
 
----
+1. **Clone the Repository:**
+   ```sh
+   git clone https://github.com/slewinus/Linkgraph.git
+   cd Linkgraph
+   ```
 
-## Fonctionnalités 🌟
+2. **Create a Virtual Environment:**
+   ```sh
+   python -m venv venv
+   source venv/bin/activate   # On Windows use `venv\Scripts\activate`
+   ```
 
-### 1. **Ouverture de Fichiers Excel**
-- Permet à l'utilisateur de sélectionner et d'ouvrir un fichier Excel (.xlsx, .xls, .xlsm) 📂.
-- Charge les données du fichier sélectionné et affiche les colonnes disponibles 📋.
-- Nouvelle option pour sélectionner la feuille Excel spécifique lors de l'ouverture du fichier.
+3. **Install Dependencies:**
+   ```sh
+   pip install -r requirements.txt
+   ```
 
-### 2. **Sélection du Dossier de Sortie**
-- Permet à l'utilisateur de choisir un dossier où les rapports générés seront enregistrés 🗂️.
-- Affiche le chemin du dossier sélectionné dans la console pour confirmation 🖥️.
+4. **Run the Application:**
+   ```sh
+   python main.py
+   ```
 
-### 3. **Sélection de Colonnes et Types de Graphiques**
-- Affiche une boîte de dialogue permettant de sélectionner les colonnes et de choisir le type de graphique à générer pour chaque colonne 🖌️.
-- Types de graphiques disponibles : Camembert 🥧, Histogramme 📊, Graphique Linéaire 📈, Nuage de Points ☁️.
-- Les colonnes "Unnamed" ne sont plus sélectionnables.
-- Option pour générer des rapports PDF incluse.
+    # Documentation
 
-### 4. **Génération de Rapports PDF**
-- Génère des graphiques pour les colonnes sélectionnées selon les types choisis et les sauvegarde en tant qu'images 📷.
-- Crée un rapport PDF incluant tous les graphiques générés avec des titres et des informations de date 📅.
-- Ajoute un logo et des informations de configuration au PDF 🖼️.
-- Option pour activer ou désactiver la génération de PDF.
+## Usage
 
-### 5. **Génération de Cartes Interactives**
-- Détecte les colonnes latitude et longitude dans les données pour créer une carte interactive 🌍.
-- Utilise les données supplémentaires pour enrichir les informations des marqueurs sur la carte 📍.
-- Sauvegarde la carte interactive au format HTML dans le dossier de sortie sélectionné 📁.
+### Launch the Application
+1. Double-click the application icon to launch it.
+2. Follow any initial setup prompts.
 
-### 6. **Interface Utilisateur Personnalisée**
-- Utilise `customtkinter` pour une interface utilisateur moderne et réactive 🖌️.
-- Propose une navigation simplifiée avec des cadres et des boutons bien disposés 📐.
-- Les boutons sont maintenant placés en bas de l'interface pour une meilleure accessibilité.
+### Load an Excel File
+1. Click the "Open Excel File" button.
+2. Select and open the desired Excel file.
 
-### 7. **Gestion des Erreurs**
-- Affiche des messages d'erreur spécifiques en cas de problème, par exemple si aucun fichier n'est sélectionné ou si aucune colonne n'est choisie pour la génération de graphiques 🚫.
-- Logs détaillés pour faciliter le débogage et la résolution des problèmes 🛠️.
+### Select Columns for Analysis
+1. Choose the columns you want to include in the analysis using the checkboxes.
 
----
+### Choose an Output Folder
+1. Click the "Select Output Folder" button.
+2. Select the folder where reports and charts will be saved.
 
-## Instructions pour l'Utilisateur 📘
+### Generate Charts
+1. Click the "Generate Report" button.
+2. Select the desired chart types (Pie, Histogram, Line, Scatter) for each column.
+3. Confirm your choices to generate and save the charts.
 
-1. **Ouvrir un fichier Excel** : Cliquez sur le bouton "Ouvrir le fichier Excel" et sélectionnez votre fichier. 📂
-2. **Sélectionner le dossier de sortie** : Cliquez sur "Choisir le dossier de sortie" et choisissez le dossier où vous souhaitez enregistrer vos rapports. 🗂️
-3. **Sélectionner la feuille Excel** : Si votre fichier Excel contient plusieurs feuilles, sélectionnez celle que vous souhaitez utiliser.
-4. **Sélectionner les colonnes et types de graphiques** : Après avoir chargé les données, sélectionnez les colonnes et les types de graphiques souhaités en utilisant la boîte de dialogue de sélection. 📋🖌️
-5. **Générer le rapport** : Cliquez sur "Generer le rappport" pour créer les graphiques et le rapport PDF. 📄
-6. **Générer une carte interactive** : Cliquez sur "Generer la carte interactive" pour créer une carte interactive des données GPS si disponibles. 🌍
+### Generate an Interactive Map
+1. Click the "Generate Interactive Map" button.
+2. The application will automatically detect columns with GPS coordinates and include them in the map.
 
-❗️Attention pour avoir des synthèses de la FTTO c'est à vous de traiter les données en amont. ❗
+### Verify Generated Files
+1. Check the output folder for:
+   - PDF reports with generated charts.
+   - PNG images of the charts.
+   - HTML files for the interactive maps.
 
----
+### Close the Application
+1. Click the close button (X) in the upper right corner of the window.
 
-## Instructions d'Installation 📦
+### Notes
+- Ensure latitude and longitude columns are correctly named for automatic detection.
+- Available chart types depend on the nature of the data (numeric data required for line and scatter plots).
 
-1. **Télécharger l'exécutable** : Téléchargez le fichier .exe fourni.
-2. **Exécuter le fichier** : Double-cliquez sur le fichier .exe pour lancer l'application. Pas besoin de se prendre la tête avec des installations compliquées ! 🤓
+## Running Tests
 
-Attention pour le moment le logiciel n'est pas signé par un certificat. Il est donc possible que cela soit detecter comme un virus par Windows. Pas d'inquiétude
+To ensure Linkgraph is functioning correctly, you can run the provided tests. Follow these steps to execute the tests:
 
----
+1. **Navigate to the Project Directory:**
+   ```sh
+   cd Linkgraph
+   ```
 
-Pour toute question : https://googlethatforyou.com?q=COMMENT%20FUSIONNER%20DES%20PDF ou xoscar.robertbesle@lintk.fr 📧
+2. **Activate the Virtual Environment:**
+   ```sh
+   source venv/bin/activate   # On Windows use `venv\Scripts\activate`
+   ```
 
----
+3. **Run the Tests:**
+   ```sh
+   python -m unittest discover -s test
+   ```
+
+This command will automatically discover and execute all test cases within the `test` directory. Ensure you have the necessary test files in this directory.
+
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)
+
