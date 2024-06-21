@@ -7,7 +7,6 @@ from PIL import Image
 from PIL.Image import Resampling
 import pandas as pd
 import re
-
 from config import apply_style, load_config
 from interactive_map import generate_interactive_map
 from reports import generate_charts, create_pdf_report

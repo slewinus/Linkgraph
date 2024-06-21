@@ -1,6 +1,3 @@
-# Change Log et Fonctionnalités pour les Utilisateurs Finaux
-
-### Application : Report Generator 📝
 ### Version : BETA V0.2.0 🚀
 ### Date de Publication : 20 Juin 2024
 
