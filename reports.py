@@ -25,7 +25,9 @@ def is_numeric_column(series):
 
 def generate_charts(df, column_chart_pairs, config, output_folder):
     figsize = (8, 6)
+    logging.info(f"Generating charts for columns: {column_chart_pairs}")
     for column, chart_type, display_type in column_chart_pairs:
+        logging.info(f"Processing column: {column}, Chart type: {chart_type}, Display type: {display_type}")
         if column in df.columns:
             value_counts = df[column].value_counts()
             plt.figure(figsize=figsize)
@@ -65,25 +67,36 @@ def generate_charts(df, column_chart_pairs, config, output_folder):
         else:
             logging.warning(f"Column {column} not found in the DataFrame.")
 
+
 def create_pdf_report(config, charts, output_folder):
-    pdf_file_path = os.path.join(output_folder, f'Rapport_Analyse_{datetime.now().strftime("%Y_%m_%d")}.pdf')
-    c = pdf_canvas.Canvas(pdf_file_path, pagesize=letter)
-    width, height = letter
-    for header, img_file_path in charts:
-        img_width, img_height = 8 * inch, 6 * inch
-        title_y_position = height - 1.5 * inch
-        image_x = (width - img_width) / 2
-        image_y = (height - img_height) / 2
-        c.setFont("Helvetica-Bold", 18)
-        c.setFillColor(config['color_title'])
-        c.drawCentredString(width / 2, title_y_position, header)
-        c.drawImage(img_file_path, image_x, image_y, width=img_width, height=img_height, preserveAspectRatio=True)
-        logo_path = os.path.join(sys._MEIPASS, "images", "logo.png") if getattr(sys, 'frozen', False) else "images/logo.png"
-        c.drawImage(logo_path, inch * 0.5, inch * 0.5, width=1 * inch, height=0.5 * inch, preserveAspectRatio=True)
-        c.setFont("Helvetica", 9)
-        c.setFillColor(config['color_text'])
-        c.drawString(2 * inch, inch * 0.25, f"Date de création : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        c.showPage()
-    c.save()
-    logging.info(f"PDF report generated: {pdf_file_path}")
-    messagebox.showinfo("Success", f"PDF file has been generated successfully: {pdf_file_path}")
+    try:
+        pdf_file_path = os.path.join(output_folder, f'Rapport_Analyse_{datetime.now().strftime("%Y_%m_%d")}.pdf')
+        logging.info(f"Creating PDF report at: {pdf_file_path}")
+        c = pdf_canvas.Canvas(pdf_file_path, pagesize=letter)
+        width, height = letter
+        for header, img_file_path in charts:
+            if not os.path.exists(img_file_path):
+                logging.error(f"Image file does not exist: {img_file_path}")
+                continue
+            logging.info(f"Adding chart to PDF: {header} from {img_file_path}")
+            img_width, img_height = 8 * inch, 6 * inch
+            title_y_position = height - 1.5 * inch
+            image_x = (width - img_width) / 2
+            image_y = (height - img_height) / 2
+            c.setFont("Helvetica-Bold", 18)
+            c.setFillColor(config['color_title'])
+            c.drawCentredString(width / 2, title_y_position, header)
+            c.drawImage(img_file_path, image_x, image_y, width=img_width, height=img_height, preserveAspectRatio=True)
+            logo_path = os.path.join(sys._MEIPASS, "images", "logo.png") if getattr(sys, 'frozen', False) else "images/logo.png"
+            c.drawImage(logo_path, inch * 0.5, inch * 0.5, width=1 * inch, height=0.5 * inch, preserveAspectRatio=True)
+            c.setFont("Helvetica", 9)
+            c.setFillColor(config['color_text'])
+            c.drawString(2 * inch, inch * 0.25, f"Date de création : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            c.showPage()
+        c.save()
+        logging.info(f"PDF report generated successfully: {pdf_file_path}")
+        messagebox.showinfo("Success", f"PDF file has been generated successfully: {pdf_file_path}")
+    except Exception as e:
+        logging.error(f"Error generating PDF report: {e}")
+        messagebox.showerror("Error", f"Failed to generate PDF report: {str(e)}")
+
